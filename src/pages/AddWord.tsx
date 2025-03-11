@@ -3,6 +3,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 import AddWordForm from '../components/AddWordForm';
+import ImportWordsForm from '../components/ImportWordsForm';
 import { WordsProvider } from '../context/WordsContext';
 
 const AddWord: React.FC = () => {
@@ -17,7 +18,10 @@ const AddWord: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <AddWordForm />
+          <div className="w-full max-w-md">
+            <AddWordForm />
+            <ImportWordsForm />
+          </div>
         </motion.main>
       </div>
     </WordsProvider>

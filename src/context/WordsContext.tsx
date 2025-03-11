@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { initialWords, Word } from '../data/words';
 import { toast } from 'sonner';
@@ -14,6 +13,7 @@ interface WordsContextType {
   markUnknown: () => void;
   nextWord: () => void;
   progress: number;
+  importWordsFromText: (wordPairs: { german: string; italian: string }[]) => Promise<void>;
 }
 
 const WordsContext = createContext<WordsContextType | undefined>(undefined);
@@ -244,6 +244,54 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
+  // New function to import words from a text file
+  const importWordsFromText = async (wordPairs: { german: string; italian: string }[]) => {
+    if (wordPairs.length === 0) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error('You must be logged in to import words');
+      navigate('/login');
+      return;
+    }
+    
+    const userId = session.user.id;
+    
+    // Prepare the words for insertion with user_id
+    const wordsToInsert = wordPairs.map(pair => ({
+      german: pair.german,
+      italian: pair.italian,
+      level: 0,
+      last_seen: Date.now(),
+      user_id: userId
+    }));
+    
+    const { data, error } = await supabase
+      .from('words')
+      .insert(wordsToInsert)
+      .select();
+      
+    if (error) {
+      console.error('Error importing words:', error);
+      throw new Error('Failed to import words');
+    }
+    
+    if (data) {
+      // Map the returned data to our Word format
+      const addedWords: Word[] = data.map(word => ({
+        id: word.id,
+        german: word.german,
+        italian: word.italian,
+        level: word.level,
+        lastSeen: word.last_seen
+      }));
+      
+      // Add the new words to our state
+      setWords(prev => [...prev, ...addedWords]);
+    }
+  };
+
   const value = {
     words,
     currentWord,
@@ -252,7 +300,8 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     markKnown,
     markUnknown,
     nextWord,
-    progress
+    progress,
+    importWordsFromText
   };
 
   return <WordsContext.Provider value={value}>{children}</WordsContext.Provider>;
