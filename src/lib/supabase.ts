@@ -3,26 +3,24 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from '../types/supabase';
 
 // Check for environment variables in Vite
-let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseUrl = 'https://vlvlbyzusihtrpevqbxb.supabase.co';
 let supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // If not available, check if we're in development and use placeholder values
-if ((!supabaseUrl || !supabaseAnonKey) && import.meta.env.DEV) {
-  console.warn('Supabase environment variables not found. Using placeholder values for development.');
+if (!supabaseAnonKey && import.meta.env.DEV) {
+  console.warn('Supabase anon key not found. Using placeholder value for development.');
   
-  // These are just placeholder values for development - they won't actually work
-  supabaseUrl = supabaseUrl || 'https://your-supabase-project-url.supabase.co';
-  supabaseAnonKey = supabaseAnonKey || 'your-supabase-anon-key';
+  // This is just a placeholder value for development - it won't actually work
+  supabaseAnonKey = 'your-supabase-anon-key';
   
   // Show guidance to the user
-  console.info('Please add your Supabase URL and anon key to your environment variables:');
-  console.info('VITE_SUPABASE_URL=https://your-project-id.supabase.co');
+  console.info('Please add your Supabase anon key to your environment variables:');
   console.info('VITE_SUPABASE_ANON_KEY=your-anon-key');
 }
 
 // Only throw an error in production to allow development without Supabase
-if ((!supabaseUrl || !supabaseAnonKey) && !import.meta.env.DEV) {
-  throw new Error('Missing Supabase environment variables');
+if (!supabaseAnonKey && !import.meta.env.DEV) {
+  throw new Error('Missing Supabase anon key environment variable');
 }
 
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey);
