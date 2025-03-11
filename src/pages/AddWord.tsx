@@ -13,12 +13,13 @@ const AddWord: React.FC = () => {
         <Header />
         
         <motion.main 
-          className="flex-1 flex flex-col items-center pt-8 p-4"
+          className="flex-1 flex flex-col items-center pt-8 px-4 pb-4 overflow-y-auto"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
           <div className="w-full max-w-md">
+            <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">Wörter hinzufügen</h1>
             <AddWordForm />
             <ImportWordsForm />
           </div>
