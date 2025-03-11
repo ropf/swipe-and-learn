@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -84,12 +85,49 @@ export default {
 					to: {
 						height: '0'
 					}
-				}
+				},
+        'slide-out-left': {
+          '0%': { transform: 'translateX(0) rotate(0)', opacity: '1' },
+          '100%': { transform: 'translateX(-500px) rotate(-10deg)', opacity: '0' }
+        },
+        'slide-out-right': {
+          '0%': { transform: 'translateX(0) rotate(0)', opacity: '1' },
+          '100%': { transform: 'translateX(500px) rotate(10deg)', opacity: '0' }
+        },
+        'slide-in': {
+          '0%': { transform: 'translateY(20px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' }
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-10px)' }
+        }
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
-			}
+				'accordion-up': 'accordion-up 0.2s ease-out',
+        'slide-out-left': 'slide-out-left 0.5s ease-out forwards',
+        'slide-out-right': 'slide-out-right 0.5s ease-out forwards',
+        'slide-in': 'slide-in 0.5s ease-out',
+        'fade-in': 'fade-in 0.5s ease-in',
+        'fade-out': 'fade-out 0.5s ease-out',
+        'float': 'float 3s ease-in-out infinite'
+			},
+      boxShadow: {
+        'card': '0 4px 30px rgba(0, 0, 0, 0.05)',
+        'card-hover': '0 8px 40px rgba(0, 0, 0, 0.1)',
+      },
+      backgroundImage: {
+        'glass-gradient': 'linear-gradient(to bottom right, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.2))',
+      }
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
