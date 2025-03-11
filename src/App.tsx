@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import AddWord from "./pages/AddWord";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Auth from "./components/Auth";
 
 const queryClient = new QueryClient();
 
@@ -17,8 +19,9 @@ const App = () => (
       <Sonner position="top-center" />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/add" element={<AddWord />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Auth><Index /></Auth>} />
+          <Route path="/add" element={<Auth><AddWord /></Auth>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
