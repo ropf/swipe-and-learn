@@ -9,6 +9,8 @@ interface WordsContextType {
   currentWord: Word | null;
   loading: boolean;
   addWord: (german: string, italian: string) => void;
+  editWord: (id: string, german: string, italian: string) => Promise<void>;
+  deleteWord: (id: string) => Promise<void>;
   markKnown: () => void;
   markUnknown: () => void;
   nextWord: () => void;
@@ -32,26 +34,21 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
-  // Calculate progress (percentage of words with level > 0)
   const progress = words.length 
     ? Math.round((words.filter(word => word.level > 0).length / words.length) * 100) 
     : 0;
 
-  // Get user session and words from Supabase
   useEffect(() => {
     const fetchUserAndWords = async () => {
       setLoading(true);
       
-      // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
-        // If not authenticated, redirect to login
         navigate('/login');
         return;
       }
       
-      // Fetch words for the authenticated user
       const { data, error } = await supabase
         .from('words')
         .select('*')
@@ -62,9 +59,8 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (error) {
         console.error('Error fetching words:', error);
         toast.error('Failed to load words');
-        setWords([]); // Set empty array on error
+        setWords([]);
       } else if (data && data.length > 0) {
-        // Map database format to our app format
         const mappedWords: Word[] = data.map(word => ({
           id: word.id,
           german: word.german,
@@ -74,7 +70,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }));
         setWords(mappedWords);
       } else {
-        // If no words exist for the user yet, seed with initial words
         await seedInitialWords(session.user.id);
       }
       
@@ -84,7 +79,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     fetchUserAndWords();
   }, [navigate]);
 
-  // Function to seed initial words for new users
   const seedInitialWords = async (userId: string) => {
     const initialWordsWithUserId = initialWords.map(word => ({
       ...word,
@@ -101,7 +95,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       toast.error('Failed to set up initial vocabulary');
       setWords([]);
     } else {
-      // Fetch the words again to get the IDs assigned by Supabase
       const { data } = await supabase
         .from('words')
         .select('*')
@@ -120,12 +113,8 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Sort words by level and last seen date
   const sortedWords = [...words].sort((a, b) => {
-    // First by level (lower levels first)
     if (a.level !== b.level) return a.level - b.level;
-    
-    // Then by lastSeen (older first)
     return a.lastSeen - b.lastSeen;
   });
 
@@ -167,6 +156,70 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       setWords(prev => [...prev, addedWord]);
       toast.success('Word added successfully');
+    }
+  };
+
+  const editWord = async (id: string, german: string, italian: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error('You must be logged in to edit words');
+      navigate('/login');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('words')
+      .update({ 
+        german, 
+        italian
+      })
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      console.error('Error updating word:', error);
+      toast.error('Failed to update word');
+      throw new Error('Failed to update word');
+    } else {
+      setWords(prev => 
+        prev.map(word => 
+          word.id === id
+            ? { ...word, german, italian }
+            : word
+        )
+      );
+      toast.success('Word updated successfully');
+    }
+  };
+
+  const deleteWord = async (id: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error('You must be logged in to delete words');
+      navigate('/login');
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('words')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', session.user.id);
+      
+    if (error) {
+      console.error('Error deleting word:', error);
+      toast.error('Failed to delete word');
+      throw new Error('Failed to delete word');
+    } else {
+      setWords(prev => prev.filter(word => word.id !== id));
+      
+      if (currentWord && currentWord.id === id) {
+        nextWord();
+      }
+      
+      toast.success('Word deleted successfully');
     }
   };
 
@@ -244,7 +297,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     );
   };
 
-  // New function to import words from a text file
   const importWordsFromText = async (wordPairs: { german: string; italian: string }[]) => {
     if (wordPairs.length === 0) return;
     
@@ -258,7 +310,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     
     const userId = session.user.id;
     
-    // Prepare the words for insertion with user_id
     const wordsToInsert = wordPairs.map(pair => ({
       german: pair.german,
       italian: pair.italian,
@@ -278,7 +329,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     
     if (data) {
-      // Map the returned data to our Word format
       const addedWords: Word[] = data.map(word => ({
         id: word.id,
         german: word.german,
@@ -287,7 +337,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         lastSeen: word.last_seen
       }));
       
-      // Add the new words to our state
       setWords(prev => [...prev, ...addedWords]);
     }
   };
@@ -297,6 +346,8 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     currentWord,
     loading,
     addWord,
+    editWord,
+    deleteWord,
     markKnown,
     markUnknown,
     nextWord,
