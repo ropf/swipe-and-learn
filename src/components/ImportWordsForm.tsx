@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useWords } from '../context/WordsContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -7,10 +7,10 @@ import { motion } from 'framer-motion';
 
 const ImportWordsForm: React.FC = () => {
   const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const { importWordsFromText } = useWords();
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const processFile = async (file: File) => {
     if (!file) return;
 
     setIsUploading(true);
@@ -61,8 +61,6 @@ const ImportWordsForm: React.FC = () => {
         toast.error('Fehler beim Importieren der Wörter.');
       } finally {
         setIsUploading(false);
-        // Reset file input
-        event.target.value = '';
       }
     };
     
@@ -73,6 +71,53 @@ const ImportWordsForm: React.FC = () => {
     
     reader.readAsText(file);
   };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+    // Reset file input
+    if (event.target) {
+      event.target.value = '';
+    }
+  };
+  
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+  
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
+  
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  }, [isDragging]);
+  
+  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
+        processFile(file);
+      } else {
+        toast.error('Bitte nur .txt Dateien hochladen');
+      }
+    }
+  }, []);
 
   return (
     <motion.div
@@ -90,10 +135,14 @@ const ImportWordsForm: React.FC = () => {
         <div className="flex items-center justify-center w-full">
           <label
             htmlFor="file-upload"
-            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
+            className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed ${isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'} rounded-lg cursor-pointer hover:bg-gray-100 transition-colors`}
+            onDragEnter={handleDragEnter}
+            onDragLeave={handleDragLeave}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
           >
             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <svg className="w-8 h-8 mb-3 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <svg className={`w-8 h-8 mb-3 ${isDragging ? 'text-blue-500' : 'text-gray-500'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
               </svg>
               <p className="mb-2 text-sm text-gray-500">
