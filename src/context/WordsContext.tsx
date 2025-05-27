@@ -30,13 +30,41 @@ export const useWords = () => {
 
 export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [words, setWords] = useState<Word[]>([]);
-  const [currentWordIndex, setCurrentWordIndex] = useState(0);
+  const [currentWord, setCurrentWord] = useState<Word | null>(null);
+  const [currentLevel, setCurrentLevel] = useState(0);
+  const [wordsQueueForCurrentLevel, setWordsQueueForCurrentLevel] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   
   const progress = words.length 
     ? Math.round((words.filter(word => word.level > 0).length / words.length) * 100) 
     : 0;
+
+  // Update queue when words or current level changes
+  useEffect(() => {
+    if (words.length > 0) {
+      const sortedWords = [...words].sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return a.lastSeen - b.lastSeen;
+      });
+      
+      const lowestLevel = Math.min(...sortedWords.map(w => w.level));
+      
+      if (currentLevel !== lowestLevel) {
+        setCurrentLevel(lowestLevel);
+      }
+      
+      const wordsAtLevel = sortedWords.filter(word => word.level === currentLevel);
+      
+      // Only update queue if it's empty or if we're starting a new level
+      if (wordsQueueForCurrentLevel.length === 0 || currentLevel !== (wordsQueueForCurrentLevel[0]?.level ?? -1)) {
+        setWordsQueueForCurrentLevel(wordsAtLevel);
+        if (wordsAtLevel.length > 0) {
+          setCurrentWord(wordsAtLevel[0]);
+        }
+      }
+    }
+  }, [words, currentLevel]);
 
   useEffect(() => {
     const fetchUserAndWords = async () => {
@@ -112,13 +140,6 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
   };
-
-  const sortedWords = [...words].sort((a, b) => {
-    if (a.level !== b.level) return a.level - b.level;
-    return a.lastSeen - b.lastSeen;
-  });
-
-  const currentWord = sortedWords.length > 0 ? sortedWords[currentWordIndex] : null;
 
   const addWord = async (german: string, italian: string) => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -215,10 +236,10 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } else {
       setWords(prev => prev.filter(word => word.id !== id));
       
-      if (currentWord && currentWord.id === id) {
-        nextWord();
-      }
+      // Remove from queue if present
+      setWordsQueueForCurrentLevel(prev => prev.filter(word => word.id !== id));
       
+      nextWord();
       toast.success('Word deleted successfully');
     }
   };
@@ -292,34 +313,45 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const nextWord = () => {
-    if (sortedWords.length === 0) return;
+    if (wordsQueueForCurrentLevel.length === 0) return;
     
-    const currentLevel = currentWord?.level ?? 0;
+    // Remove current word from queue
+    const remainingWords = wordsQueueForCurrentLevel.slice(1);
+    setWordsQueueForCurrentLevel(remainingWords);
     
-    // Finde alle Wörter des aktuellen Levels
-    const wordsAtCurrentLevel = sortedWords.filter(word => word.level === currentLevel);
-    
-    // Finde den aktuellen Index innerhalb der Wörter des gleichen Levels
-    const currentWordInLevel = wordsAtCurrentLevel.findIndex(word => word.id === currentWord?.id);
-    
-    // Wenn es noch weitere Wörter im aktuellen Level gibt
-    if (currentWordInLevel < wordsAtCurrentLevel.length - 1) {
-      // Gehe zum nächsten Wort im gleichen Level
-      const nextWordInLevel = wordsAtCurrentLevel[currentWordInLevel + 1];
-      const nextIndex = sortedWords.findIndex(word => word.id === nextWordInLevel.id);
-      setCurrentWordIndex(nextIndex);
+    if (remainingWords.length > 0) {
+      // More words in current level
+      setCurrentWord(remainingWords[0]);
     } else {
-      // Alle Wörter des aktuellen Levels wurden durchlaufen
-      // Finde das erste Wort des nächsten Levels oder beginne von vorne
-      const nextLevelWord = sortedWords.find(word => word.level > currentLevel);
+      // Current level is complete, move to next level
+      const sortedWords = [...words].sort((a, b) => {
+        if (a.level !== b.level) return a.level - b.level;
+        return a.lastSeen - b.lastSeen;
+      });
       
-      if (nextLevelWord) {
-        // Gehe zum ersten Wort des nächsten Levels
-        const nextIndex = sortedWords.findIndex(word => word.id === nextLevelWord.id);
-        setCurrentWordIndex(nextIndex);
+      const nextLevel = currentLevel + 1;
+      const wordsAtNextLevel = sortedWords.filter(word => word.level === nextLevel);
+      
+      if (wordsAtNextLevel.length > 0) {
+        // Move to next level
+        setCurrentLevel(nextLevel);
+        setWordsQueueForCurrentLevel(wordsAtNextLevel);
+        setCurrentWord(wordsAtNextLevel[0]);
       } else {
-        // Keine höheren Level vorhanden, beginne von vorne
-        setCurrentWordIndex(0);
+        // No more levels, start over from level 0
+        const level0Words = sortedWords.filter(word => word.level === 0);
+        if (level0Words.length > 0) {
+          setCurrentLevel(0);
+          setWordsQueueForCurrentLevel(level0Words);
+          setCurrentWord(level0Words[0]);
+        } else {
+          // All words are above level 0, start from lowest available level
+          const lowestLevel = Math.min(...sortedWords.map(w => w.level));
+          const lowestLevelWords = sortedWords.filter(word => word.level === lowestLevel);
+          setCurrentLevel(lowestLevel);
+          setWordsQueueForCurrentLevel(lowestLevelWords);
+          setCurrentWord(lowestLevelWords[0]);
+        }
       }
     }
   };
