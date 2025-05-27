@@ -292,9 +292,36 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const nextWord = () => {
-    setCurrentWordIndex(prev => 
-      prev < sortedWords.length - 1 ? prev + 1 : 0
-    );
+    if (sortedWords.length === 0) return;
+    
+    const currentLevel = currentWord?.level ?? 0;
+    
+    // Finde alle Wörter des aktuellen Levels
+    const wordsAtCurrentLevel = sortedWords.filter(word => word.level === currentLevel);
+    
+    // Finde den aktuellen Index innerhalb der Wörter des gleichen Levels
+    const currentWordInLevel = wordsAtCurrentLevel.findIndex(word => word.id === currentWord?.id);
+    
+    // Wenn es noch weitere Wörter im aktuellen Level gibt
+    if (currentWordInLevel < wordsAtCurrentLevel.length - 1) {
+      // Gehe zum nächsten Wort im gleichen Level
+      const nextWordInLevel = wordsAtCurrentLevel[currentWordInLevel + 1];
+      const nextIndex = sortedWords.findIndex(word => word.id === nextWordInLevel.id);
+      setCurrentWordIndex(nextIndex);
+    } else {
+      // Alle Wörter des aktuellen Levels wurden durchlaufen
+      // Finde das erste Wort des nächsten Levels oder beginne von vorne
+      const nextLevelWord = sortedWords.find(word => word.level > currentLevel);
+      
+      if (nextLevelWord) {
+        // Gehe zum ersten Wort des nächsten Levels
+        const nextIndex = sortedWords.findIndex(word => word.id === nextLevelWord.id);
+        setCurrentWordIndex(nextIndex);
+      } else {
+        // Keine höheren Level vorhanden, beginne von vorne
+        setCurrentWordIndex(0);
+      }
+    }
   };
 
   const importWordsFromText = async (wordPairs: { german: string; italian: string }[]) => {
