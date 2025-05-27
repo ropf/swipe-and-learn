@@ -34,6 +34,50 @@ export const useWordLearning = (
     }
   }, [words, currentLevel]);
 
+  const updateQueueAfterLevelChange = () => {
+    const sortedWords = sortWords(words);
+    const actualWordsAtCurrentLevel = getWordsAtLevel(sortedWords, currentLevel);
+    
+    // Remove words that are no longer at the current level from queue
+    const updatedQueue = wordsQueueForCurrentLevel.filter(queueWord => 
+      actualWordsAtCurrentLevel.some(levelWord => levelWord.id === queueWord.id)
+    );
+    
+    setWordsQueueForCurrentLevel(updatedQueue);
+    
+    if (updatedQueue.length > 0) {
+      setCurrentWord(updatedQueue[0]);
+      return true; // Still words in current level
+    } else {
+      // No more words in current level, check for next level
+      const nextLevel = currentLevel + 1;
+      const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+      
+      if (wordsAtNextLevel.length > 0) {
+        // Move to next level
+        setCurrentLevel(nextLevel);
+        setWordsQueueForCurrentLevel(wordsAtNextLevel);
+        setCurrentWord(wordsAtNextLevel[0]);
+      } else {
+        // No more levels, start over from level 0
+        const level0Words = getWordsAtLevel(sortedWords, 0);
+        if (level0Words.length > 0) {
+          setCurrentLevel(0);
+          setWordsQueueForCurrentLevel(level0Words);
+          setCurrentWord(level0Words[0]);
+        } else {
+          // All words are above level 0, start from lowest available level
+          const lowestLevel = getLowestLevel(sortedWords);
+          const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
+          setCurrentLevel(lowestLevel);
+          setWordsQueueForCurrentLevel(lowestLevelWords);
+          setCurrentWord(lowestLevelWords[0]);
+        }
+      }
+      return false; // Moved to different level
+    }
+  };
+
   const markKnown = async () => {
     if (!currentWord) return;
     
@@ -57,7 +101,13 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    nextWord();
+    // Use timeout to ensure state update has been processed
+    setTimeout(() => {
+      const stillInCurrentLevel = updateQueueAfterLevelChange();
+      if (stillInCurrentLevel) {
+        nextWord();
+      }
+    }, 0);
   };
 
   const markUnknown = async () => {
@@ -83,7 +133,13 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    nextWord();
+    // Use timeout to ensure state update has been processed
+    setTimeout(() => {
+      const stillInCurrentLevel = updateQueueAfterLevelChange();
+      if (stillInCurrentLevel) {
+        nextWord();
+      }
+    }, 0);
   };
 
   const nextWord = () => {
