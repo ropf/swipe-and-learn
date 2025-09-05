@@ -11,6 +11,7 @@ export const useWordLearning = (
   const [currentWord, setCurrentWord] = useState<Word | null>(null);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [wordsQueueForCurrentLevel, setWordsQueueForCurrentLevel] = useState<Word[]>([]);
+  const [sessionProgress, setSessionProgress] = useState<Record<string, number>>({});
 
   // Update queue when words or current level changes
   useEffect(() => {
@@ -81,6 +82,16 @@ export const useWordLearning = (
   const markKnown = async () => {
     if (!currentWord) return;
     
+    // Track session progress for this word
+    const currentProgress = sessionProgress[currentWord.id] || 0;
+    const newProgress = currentProgress + 1;
+    
+    // Update session progress
+    setSessionProgress(prev => ({
+      ...prev,
+      [currentWord.id]: newProgress
+    }));
+    
     const updatedLevel = Math.min(5, currentWord.level + 1);
     const updatedLastSeen = Date.now();
     
@@ -101,17 +112,38 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    // Use timeout to ensure state update has been processed
-    setTimeout(() => {
-      const stillInCurrentLevel = updateQueueAfterLevelChange();
-      if (stillInCurrentLevel) {
-        nextWord();
-      }
-    }, 0);
+    // If word has been correct twice in this session, remove it from queue completely
+    if (newProgress >= 2) {
+      setWordsQueueForCurrentLevel(prev => prev.filter(word => word.id !== currentWord.id));
+      
+      // Find next word in queue or move to next level
+      setTimeout(() => {
+        const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
+        if (remainingQueue.length > 0) {
+          setCurrentWord(remainingQueue[0]);
+        } else {
+          updateQueueAfterLevelChange();
+        }
+      }, 0);
+    } else {
+      // Use timeout to ensure state update has been processed
+      setTimeout(() => {
+        const stillInCurrentLevel = updateQueueAfterLevelChange();
+        if (stillInCurrentLevel) {
+          nextWord();
+        }
+      }, 0);
+    }
   };
 
   const markUnknown = async () => {
     if (!currentWord) return;
+    
+    // Reset session progress for this word when it's marked as unknown
+    setSessionProgress(prev => ({
+      ...prev,
+      [currentWord.id]: 0
+    }));
     
     const updatedLevel = Math.max(0, currentWord.level - 1);
     const updatedLastSeen = Date.now();
