@@ -13,4 +13,8 @@ export interface WordsContextType {
   nextWord: () => void;
   progress: number;
   importWordsFromText: (wordPairs: { german: string; italian: string }[]) => Promise<void>;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  filteredWords: Word[];
+  isSearchActive: boolean;
 }

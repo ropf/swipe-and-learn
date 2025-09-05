@@ -23,9 +23,23 @@ export const useWords = () => {
 export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [words, setWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   const navigate = useNavigate();
   
   const progress = calculateProgress(words);
+
+  // Filter words based on search query (LIKE search)
+  const filteredWords = React.useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    
+    const query = searchQuery.toLowerCase().trim();
+    return words.filter(word => 
+      word.german.toLowerCase().includes(query) || 
+      word.italian.toLowerCase().includes(query)
+    );
+  }, [words, searchQuery]);
+
+  const isSearchActive = searchQuery.trim().length > 0;
 
   const {
     currentWord,
@@ -82,7 +96,11 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     markUnknown,
     nextWord,
     progress,
-    importWordsFromText
+    importWordsFromText,
+    searchQuery,
+    setSearchQuery,
+    filteredWords,
+    isSearchActive
   };
 
   return <WordsContext.Provider value={value}>{children}</WordsContext.Provider>;
