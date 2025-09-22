@@ -114,25 +114,16 @@ export const useWordLearning = (
     
     // If word has been correct once in this session, remove it from queue completely
     if (newProgress >= 1) {
-      setWordsQueueForCurrentLevel(prev => prev.filter(word => word.id !== currentWord.id));
+      const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
+      setWordsQueueForCurrentLevel(remainingQueue);
       
-      // Find next word in queue or move to next level
-      setTimeout(() => {
-        const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
-        if (remainingQueue.length > 0) {
-          setCurrentWord(remainingQueue[0]);
-        } else {
-          updateQueueAfterLevelChange();
-        }
-      }, 0);
+      if (remainingQueue.length > 0) {
+        setCurrentWord(remainingQueue[0]);
+      } else {
+        updateQueueAfterLevelChange();
+      }
     } else {
-      // Use timeout to ensure state update has been processed
-      setTimeout(() => {
-        const stillInCurrentLevel = updateQueueAfterLevelChange();
-        if (stillInCurrentLevel) {
-          nextWord();
-        }
-      }, 0);
+      updateQueueAfterLevelChange();
     }
   };
 
@@ -165,13 +156,7 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    // Use timeout to ensure state update has been processed
-    setTimeout(() => {
-      const stillInCurrentLevel = updateQueueAfterLevelChange();
-      if (stillInCurrentLevel) {
-        nextWord();
-      }
-    }, 0);
+    updateQueueAfterLevelChange();
   };
 
   const nextWord = () => {
