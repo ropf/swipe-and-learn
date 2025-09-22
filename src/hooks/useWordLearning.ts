@@ -50,31 +50,29 @@ export const useWordLearning = (
       setCurrentWord(updatedQueue[0]);
       return true; // Still words in current level
     } else {
-      // No more words in current level, check for next level
-      const nextLevel = currentLevel + 1;
-      const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+      // No more words in current level, systematically move to next higher level
+      const maxLevel = Math.max(...sortedWords.map(w => w.level));
       
-      if (wordsAtNextLevel.length > 0) {
-        // Move to next level
-        setCurrentLevel(nextLevel);
-        setWordsQueueForCurrentLevel(wordsAtNextLevel);
-        setCurrentWord(wordsAtNextLevel[0]);
-      } else {
-        // No more levels, start over from level 0
-        const level0Words = getWordsAtLevel(sortedWords, 0);
-        if (level0Words.length > 0) {
-          setCurrentLevel(0);
-          setWordsQueueForCurrentLevel(level0Words);
-          setCurrentWord(level0Words[0]);
-        } else {
-          // All words are above level 0, start from lowest available level
-          const lowestLevel = getLowestLevel(sortedWords);
-          const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
-          setCurrentLevel(lowestLevel);
-          setWordsQueueForCurrentLevel(lowestLevelWords);
-          setCurrentWord(lowestLevelWords[0]);
+      // Try each level from current+1 to maxLevel
+      for (let nextLevel = currentLevel + 1; nextLevel <= maxLevel; nextLevel++) {
+        const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+        if (wordsAtNextLevel.length > 0) {
+          setCurrentLevel(nextLevel);
+          setWordsQueueForCurrentLevel(wordsAtNextLevel);
+          setCurrentWord(wordsAtNextLevel[0]);
+          return false; // Moved to different level
         }
       }
+      
+      // All higher levels are empty, start over from lowest available level
+      const lowestLevel = getLowestLevel(sortedWords);
+      const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
+      if (lowestLevelWords.length > 0) {
+        setCurrentLevel(lowestLevel);
+        setWordsQueueForCurrentLevel(lowestLevelWords);
+        setCurrentWord(lowestLevelWords[0]);
+      }
+      
       return false; // Moved to different level
     }
   };
@@ -170,31 +168,28 @@ export const useWordLearning = (
       // More words in current level
       setCurrentWord(remainingWords[0]);
     } else {
-      // Current level is complete, move to next level
+      // Current level is complete, systematically move to next higher level
       const sortedWords = sortWords(words);
-      const nextLevel = currentLevel + 1;
-      const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+      const maxLevel = Math.max(...sortedWords.map(w => w.level));
       
-      if (wordsAtNextLevel.length > 0) {
-        // Move to next level
-        setCurrentLevel(nextLevel);
-        setWordsQueueForCurrentLevel(wordsAtNextLevel);
-        setCurrentWord(wordsAtNextLevel[0]);
-      } else {
-        // No more levels, start over from level 0
-        const level0Words = getWordsAtLevel(sortedWords, 0);
-        if (level0Words.length > 0) {
-          setCurrentLevel(0);
-          setWordsQueueForCurrentLevel(level0Words);
-          setCurrentWord(level0Words[0]);
-        } else {
-          // All words are above level 0, start from lowest available level
-          const lowestLevel = getLowestLevel(sortedWords);
-          const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
-          setCurrentLevel(lowestLevel);
-          setWordsQueueForCurrentLevel(lowestLevelWords);
-          setCurrentWord(lowestLevelWords[0]);
+      // Try each level from current+1 to maxLevel
+      for (let nextLevel = currentLevel + 1; nextLevel <= maxLevel; nextLevel++) {
+        const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+        if (wordsAtNextLevel.length > 0) {
+          setCurrentLevel(nextLevel);
+          setWordsQueueForCurrentLevel(wordsAtNextLevel);
+          setCurrentWord(wordsAtNextLevel[0]);
+          return;
         }
+      }
+      
+      // All higher levels are empty, start over from lowest available level
+      const lowestLevel = getLowestLevel(sortedWords);
+      const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
+      if (lowestLevelWords.length > 0) {
+        setCurrentLevel(lowestLevel);
+        setWordsQueueForCurrentLevel(lowestLevelWords);
+        setCurrentWord(lowestLevelWords[0]);
       }
     }
   };
