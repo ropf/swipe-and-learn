@@ -112,8 +112,8 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    // If word has been correct twice in this session, remove it from queue completely
-    if (newProgress >= 2) {
+    // If word has been correct once in this session, remove it from queue completely
+    if (newProgress >= 1) {
       setWordsQueueForCurrentLevel(prev => prev.filter(word => word.id !== currentWord.id));
       
       // Find next word in queue or move to next level
