@@ -1,5 +1,4 @@
-
-import { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { Word } from '../data/words';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
