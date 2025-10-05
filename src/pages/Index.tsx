@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import Header from '../components/Header';
 import CardDeck from '../components/CardDeck';
@@ -7,7 +6,7 @@ import SearchInput from '../components/SearchInput';
 import WordsList from '../components/WordsList';
 import { useWords } from '../context/WordsContext';
 
-const Index: React.FC = () => {
+const Index = () => {
   const { isSearchActive, filteredWords, searchQuery } = useWords();
 
   return (

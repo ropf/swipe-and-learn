@@ -1,10 +1,9 @@
-import React from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { useWords } from '../context/WordsContext';
 
-const SearchInput: React.FC = () => {
+const SearchInput = () => {
   const { searchQuery, setSearchQuery, isSearchActive } = useWords();
 
   const handleClear = () => {
