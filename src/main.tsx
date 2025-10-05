@@ -1,32 +1,23 @@
-import React, { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import App from './App.tsx'
-import './index.css'
-
-// Ensure React is fully loaded before rendering
-const initApp = () => {
+// Force immediate execution and ensure React is available
+(async () => {
+  // Import React first
+  const React = await import('react');
+  const { createRoot } = await import('react-dom/client');
+  const { default: App } = await import('./App.tsx');
+  
+  // Import styles
+  await import('./index.css');
+  
   const rootElement = document.getElementById("root");
-
+  
   if (!rootElement) {
-    throw new Error('Root element not found');
-  }
-
-  // Verify React is available
-  if (typeof React === 'undefined') {
-    console.error('React is not loaded');
+    console.error('Root element not found');
     return;
   }
-
+  
+  const { StrictMode } = React;
+  
   createRoot(rootElement).render(
-    <StrictMode>
-      <App />
-    </StrictMode>
+    StrictMode ? <StrictMode><App /></StrictMode> : <App />
   );
-};
-
-// Wait for DOM to be fully loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initApp);
-} else {
-  initApp();
-}
+})();
