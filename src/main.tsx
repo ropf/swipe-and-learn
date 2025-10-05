@@ -1,7 +1,13 @@
-import React from 'react'
+import * as React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
+
+// Make React globally available to prevent conflicts with external scripts
+if (typeof window !== 'undefined') {
+  (window as any).React = React;
+  (window as any).ReactDOM = ReactDOM;
+}
 
 // Robust initialization with retry logic
 const initializeApp = () => {
