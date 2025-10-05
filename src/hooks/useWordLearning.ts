@@ -11,9 +11,10 @@ export const useWordLearning = (
   const [currentWord, setCurrentWord] = useState<Word | null>(null);
   const [currentLevel, setCurrentLevel] = useState(0);
   const [wordsQueueForCurrentLevel, setWordsQueueForCurrentLevel] = useState<Word[]>([]);
-  const [sessionProgress, setSessionProgress] = useState<Record<string, number>>({});
+  // Track how many times each word has been shown in this session
+  const [sessionShownCount, setSessionShownCount] = useState<Record<string, number>>({});
 
-  // Update queue when words or current level changes
+  // Initialize with lowest level words, filtering out words shown 3+ times
   useEffect(() => {
     if (words.length > 0) {
       const sortedWords = sortWords(words);
@@ -23,9 +24,11 @@ export const useWordLearning = (
         setCurrentLevel(lowestLevel);
       }
       
-      const wordsAtLevel = getWordsAtLevel(sortedWords, currentLevel);
+      // Filter out words that have been shown 3 or more times
+      const wordsAtLevel = getWordsAtLevel(sortedWords, currentLevel).filter(
+        word => (sessionShownCount[word.id] || 0) < 3
+      );
       
-      // Only update queue if it's empty or if we're starting a new level
       if (wordsQueueForCurrentLevel.length === 0 || currentLevel !== (wordsQueueForCurrentLevel[0]?.level ?? -1)) {
         setWordsQueueForCurrentLevel(wordsAtLevel);
         if (wordsAtLevel.length > 0) {
@@ -35,63 +38,50 @@ export const useWordLearning = (
     }
   }, [words, currentLevel]);
 
-  const updateQueueAfterLevelChange = () => {
+  const moveToNextAvailableWord = () => {
     const sortedWords = sortWords(words);
-    const actualWordsAtCurrentLevel = getWordsAtLevel(sortedWords, currentLevel);
     
-    // Remove words that are no longer at the current level from queue
-    const updatedQueue = wordsQueueForCurrentLevel.filter(queueWord => 
-      actualWordsAtCurrentLevel.some(levelWord => levelWord.id === queueWord.id)
-    );
+    // Try to find next word in current level that hasn't been shown 3 times
+    let foundWord = false;
     
-    setWordsQueueForCurrentLevel(updatedQueue);
-    
-    if (updatedQueue.length > 0) {
-      setCurrentWord(updatedQueue[0]);
-      return true; // Still words in current level
-    } else {
-      // No more words in current level, check for next level
-      const nextLevel = currentLevel + 1;
-      const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
+    for (let level = currentLevel; level <= 5; level++) {
+      const wordsAtLevel = getWordsAtLevel(sortedWords, level).filter(
+        word => (sessionShownCount[word.id] || 0) < 3
+      );
       
-      if (wordsAtNextLevel.length > 0) {
-        // Move to next level
-        setCurrentLevel(nextLevel);
-        setWordsQueueForCurrentLevel(wordsAtNextLevel);
-        setCurrentWord(wordsAtNextLevel[0]);
-      } else {
-        // No more levels, start over from level 0
-        const level0Words = getWordsAtLevel(sortedWords, 0);
-        if (level0Words.length > 0) {
-          setCurrentLevel(0);
-          setWordsQueueForCurrentLevel(level0Words);
-          setCurrentWord(level0Words[0]);
-        } else {
-          // All words are above level 0, start from lowest available level
-          const lowestLevel = getLowestLevel(sortedWords);
-          const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
-          setCurrentLevel(lowestLevel);
-          setWordsQueueForCurrentLevel(lowestLevelWords);
-          setCurrentWord(lowestLevelWords[0]);
+      if (wordsAtLevel.length > 0) {
+        if (level !== currentLevel) {
+          setCurrentLevel(level);
         }
+        setWordsQueueForCurrentLevel(wordsAtLevel);
+        setCurrentWord(wordsAtLevel[0]);
+        foundWord = true;
+        break;
       }
-      return false; // Moved to different level
+    }
+    
+    // If no words found in any level, reset session and start from lowest level
+    if (!foundWord) {
+      setSessionShownCount({});
+      const lowestLevel = getLowestLevel(sortedWords);
+      const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
+      setCurrentLevel(lowestLevel);
+      setWordsQueueForCurrentLevel(lowestLevelWords);
+      setCurrentWord(lowestLevelWords.length > 0 ? lowestLevelWords[0] : null);
     }
   };
 
   const markKnown = async () => {
     if (!currentWord) return;
     
-    // Track session progress for this word
-    const currentProgress = sessionProgress[currentWord.id] || 0;
-    const newProgress = currentProgress + 1;
-    
-    // Update session progress
-    setSessionProgress(prev => ({
+    // Increment shown count
+    const newCount = (sessionShownCount[currentWord.id] || 0) + 1;
+    setSessionShownCount(prev => ({
       ...prev,
-      [currentWord.id]: newProgress
+      [currentWord.id]: newCount
     }));
     
+    // Update level (+1)
     const updatedLevel = Math.min(5, currentWord.level + 1);
     const updatedLastSeen = Date.now();
     
@@ -100,11 +90,7 @@ export const useWordLearning = (
       setWords(prev => 
         prev.map(word => 
           word.id === currentWord.id
-            ? { 
-                ...word, 
-                level: updatedLevel, 
-                lastSeen: updatedLastSeen 
-              }
+            ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
             : word
         )
       );
@@ -112,30 +98,32 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    // If word has been correct once in this session, remove it from queue completely
-    if (newProgress >= 1) {
+    // If shown 3 times, remove from queue completely
+    if (newCount >= 3) {
       const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
       setWordsQueueForCurrentLevel(remainingQueue);
       
       if (remainingQueue.length > 0) {
         setCurrentWord(remainingQueue[0]);
       } else {
-        updateQueueAfterLevelChange();
+        moveToNextAvailableWord();
       }
     } else {
-      updateQueueAfterLevelChange();
+      moveToNextAvailableWord();
     }
   };
 
   const markUnknown = async () => {
     if (!currentWord) return;
     
-    // Reset session progress for this word when it's marked as unknown
-    setSessionProgress(prev => ({
+    // Increment shown count
+    const newCount = (sessionShownCount[currentWord.id] || 0) + 1;
+    setSessionShownCount(prev => ({
       ...prev,
-      [currentWord.id]: 0
+      [currentWord.id]: newCount
     }));
     
+    // Update level (-1)
     const updatedLevel = Math.max(0, currentWord.level - 1);
     const updatedLastSeen = Date.now();
     
@@ -144,11 +132,7 @@ export const useWordLearning = (
       setWords(prev => 
         prev.map(word => 
           word.id === currentWord.id
-            ? { 
-                ...word, 
-                level: updatedLevel, 
-                lastSeen: updatedLastSeen 
-              }
+            ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
             : word
         )
       );
@@ -156,7 +140,19 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    updateQueueAfterLevelChange();
+    // If shown 3 times, remove from queue completely
+    if (newCount >= 3) {
+      const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
+      setWordsQueueForCurrentLevel(remainingQueue);
+      
+      if (remainingQueue.length > 0) {
+        setCurrentWord(remainingQueue[0]);
+      } else {
+        moveToNextAvailableWord();
+      }
+    } else {
+      moveToNextAvailableWord();
+    }
   };
 
   const nextWord = () => {
@@ -167,35 +163,9 @@ export const useWordLearning = (
     setWordsQueueForCurrentLevel(remainingWords);
     
     if (remainingWords.length > 0) {
-      // More words in current level
       setCurrentWord(remainingWords[0]);
     } else {
-      // Current level is complete, move to next level
-      const sortedWords = sortWords(words);
-      const nextLevel = currentLevel + 1;
-      const wordsAtNextLevel = getWordsAtLevel(sortedWords, nextLevel);
-      
-      if (wordsAtNextLevel.length > 0) {
-        // Move to next level
-        setCurrentLevel(nextLevel);
-        setWordsQueueForCurrentLevel(wordsAtNextLevel);
-        setCurrentWord(wordsAtNextLevel[0]);
-      } else {
-        // No more levels, start over from level 0
-        const level0Words = getWordsAtLevel(sortedWords, 0);
-        if (level0Words.length > 0) {
-          setCurrentLevel(0);
-          setWordsQueueForCurrentLevel(level0Words);
-          setCurrentWord(level0Words[0]);
-        } else {
-          // All words are above level 0, start from lowest available level
-          const lowestLevel = getLowestLevel(sortedWords);
-          const lowestLevelWords = getWordsAtLevel(sortedWords, lowestLevel);
-          setCurrentLevel(lowestLevel);
-          setWordsQueueForCurrentLevel(lowestLevelWords);
-          setCurrentWord(lowestLevelWords[0]);
-        }
-      }
+      moveToNextAvailableWord();
     }
   };
 
