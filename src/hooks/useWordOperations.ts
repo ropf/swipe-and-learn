@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import React from 'react';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { Word } from '../data/words';
