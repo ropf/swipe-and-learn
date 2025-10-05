@@ -151,7 +151,18 @@ export const useWordLearning = (
         moveToNextAvailableWord();
       }
     } else {
-      moveToNextAvailableWord();
+      // Move word to end of queue instead of showing it again immediately
+      const remainingQueue = wordsQueueForCurrentLevel.slice(1);
+      const updatedWord = { ...currentWord, level: updatedLevel, lastSeen: updatedLastSeen };
+      const newQueue = [...remainingQueue, updatedWord];
+      
+      setWordsQueueForCurrentLevel(newQueue);
+      
+      if (newQueue.length > 0) {
+        setCurrentWord(newQueue[0]);
+      } else {
+        moveToNextAvailableWord();
+      }
     }
   };
 
