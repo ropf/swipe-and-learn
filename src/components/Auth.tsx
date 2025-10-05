@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Loader2 } from 'lucide-react';
@@ -8,7 +8,7 @@ interface AuthProps {
   children: React.ReactNode;
 }
 
-const Auth: React.FC<AuthProps> = ({ children }) => {
+const Auth = ({ children }: AuthProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   

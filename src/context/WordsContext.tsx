@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { Word } from '../data/words';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
@@ -20,7 +20,7 @@ export const useWords = () => {
   return context;
 };
 
-export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const WordsProvider = ({ children }: { children: React.ReactNode }) => {
   const [words, setWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -29,7 +29,7 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const progress = calculateProgress(words);
 
   // Filter words based on search query (LIKE search)
-  const filteredWords = React.useMemo(() => {
+  const filteredWords = useMemo(() => {
     if (!searchQuery.trim()) return [];
     
     const query = searchQuery.toLowerCase().trim();
