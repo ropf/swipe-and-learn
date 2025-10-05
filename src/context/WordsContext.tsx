@@ -54,7 +54,7 @@ export const WordsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     editWord,
     deleteWord,
     importWordsFromText
-  } = useWordOperations(words, setWords, setWordsQueueForCurrentLevel, nextWord);
+  } = useWordOperations(words, setWords, setWordsQueueForCurrentLevel, nextWord, navigate);
 
   useEffect(() => {
     const fetchUserAndWords = async () => {

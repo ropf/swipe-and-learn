@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '../lib/supabase';
 import { Word } from '../data/words';
@@ -16,9 +15,9 @@ export const useWordOperations = (
   words: Word[],
   setWords: React.Dispatch<React.SetStateAction<Word[]>>,
   setWordsQueueForCurrentLevel: React.Dispatch<React.SetStateAction<Word[]>>,
-  nextWord: () => void
+  nextWord: () => void,
+  navigate: (path: string) => void
 ) => {
-  const navigate = useNavigate();
 
   const addWord = async (german: string, italian: string) => {
     const { data: { session } } = await supabase.auth.getSession();
