@@ -61,7 +61,7 @@ export const useWordLearning = (
       if (level === currentLevel) continue; // Skip current level, we already checked it
       
       const wordsAtLevel = getWordsAtLevel(sortedWords, level).filter(
-        word => (sessionShownCount[word.id] || 0) < 3
+        word => (sessionShownCount[word.id] || 0) < 3 && word.id !== excludeWordId
       );
       
       if (wordsAtLevel.length > 0) {
