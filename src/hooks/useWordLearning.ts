@@ -108,31 +108,47 @@ export const useWordLearning = (
     const updatedLastSeen = Date.now();
     
     // If word is moved to a different level, mark it as just moved
-    if (updatedLevel !== originalLevel) {
+    const levelChanged = updatedLevel !== originalLevel;
+    if (levelChanged) {
       setJustMovedWords(prev => new Set(prev).add(wordId));
     }
     
     try {
       await updateWordLevel(wordId, updatedLevel, updatedLastSeen);
-      setWords(prev => 
-        prev.map(word => 
-          word.id === wordId
-            ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
-            : word
-        )
+      
+      // Create updated words array manually (don't wait for state)
+      const updatedWords = words.map(word => 
+        word.id === wordId
+          ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
+          : word
       );
+      
+      setWords(updatedWords);
+      
+      // Calculate remaining queue from current level with updated data
+      const remainingQueue = wordsQueueForCurrentLevel.filter(word => {
+        if (word.id === wordId) return false;
+        
+        // Check if word still exists at current level in updated words
+        const updatedWord = updatedWords.find(w => w.id === word.id);
+        if (!updatedWord || updatedWord.level !== currentLevel) return false;
+        
+        // Check session count and just moved
+        if ((sessionShownCount[word.id] || 0) >= 3) return false;
+        if (justMovedWords.has(word.id)) return false;
+        
+        return true;
+      });
+      
+      setWordsQueueForCurrentLevel(remainingQueue);
+      
+      if (remainingQueue.length > 0) {
+        setCurrentWord(remainingQueue[0]);
+      } else {
+        moveToNextAvailableWord();
+      }
     } catch (error) {
       // Error already handled in updateWordLevel
-    }
-    
-    // Remove word from current level queue
-    const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== wordId);
-    setWordsQueueForCurrentLevel(remainingQueue);
-    
-    if (remainingQueue.length > 0) {
-      setCurrentWord(remainingQueue[0]);
-    } else {
-      moveToNextAvailableWord();
     }
   };
 
@@ -154,32 +170,48 @@ export const useWordLearning = (
     const updatedLastSeen = Date.now();
     
     // If word is moved to a different level, mark it as just moved
-    if (updatedLevel !== originalLevel) {
+    const levelChanged = updatedLevel !== originalLevel;
+    if (levelChanged) {
       setJustMovedWords(prev => new Set(prev).add(wordId));
     }
     
     try {
       await updateWordLevel(wordId, updatedLevel, updatedLastSeen);
-      setWords(prev => 
-        prev.map(word => 
-          word.id === wordId
-            ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
-            : word
-        )
+      
+      // Create updated words array manually (don't wait for state)
+      const updatedWords = words.map(word => 
+        word.id === wordId
+          ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
+          : word
       );
+      
+      setWords(updatedWords);
+      
+      // Calculate remaining queue from current level with updated data
+      const remainingQueue = wordsQueueForCurrentLevel.filter(word => {
+        if (word.id === wordId) return false;
+        
+        // Check if word still exists at current level in updated words
+        const updatedWord = updatedWords.find(w => w.id === word.id);
+        if (!updatedWord || updatedWord.level !== currentLevel) return false;
+        
+        // Check session count and just moved
+        if ((sessionShownCount[word.id] || 0) >= 3) return false;
+        if (justMovedWords.has(word.id)) return false;
+        
+        return true;
+      });
+      
+      setWordsQueueForCurrentLevel(remainingQueue);
+      
+      if (remainingQueue.length > 0) {
+        setCurrentWord(remainingQueue[0]);
+      } else {
+        // Exclude the just-moved word from immediate re-selection
+        moveToNextAvailableWord(wordId);
+      }
     } catch (error) {
       // Error already handled in updateWordLevel
-    }
-    
-    // Remove word from current level queue
-    const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== wordId);
-    setWordsQueueForCurrentLevel(remainingQueue);
-    
-    if (remainingQueue.length > 0) {
-      setCurrentWord(remainingQueue[0]);
-    } else {
-      // Exclude the just-moved word from immediate re-selection
-      moveToNextAvailableWord(wordId);
     }
   };
 
