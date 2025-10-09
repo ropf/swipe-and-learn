@@ -53,9 +53,13 @@ export const useWordLearning = (
       return;
     }
     
-    // Only if current level is completely done, move to next level
+    // Current level is done, find the next lowest level available
     let foundWord = false;
-    for (let level = currentLevel + 1; level <= 5; level++) {
+    const lowestLevel = getLowestLevel(sortedWords);
+    
+    for (let level = lowestLevel; level <= 5; level++) {
+      if (level === currentLevel) continue; // Skip current level, we already checked it
+      
       const wordsAtLevel = getWordsAtLevel(sortedWords, level).filter(
         word => (sessionShownCount[word.id] || 0) < 3
       );
