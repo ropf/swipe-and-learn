@@ -41,18 +41,27 @@ export const useWordLearning = (
   const moveToNextAvailableWord = (excludeWordId?: string) => {
     const sortedWords = sortWords(words);
     
-    // Try to find next word in current level that hasn't been shown 3 times
-    let foundWord = false;
+    // First, try to find another word in the CURRENT level only
+    const currentLevelWords = getWordsAtLevel(sortedWords, currentLevel).filter(
+      word => (sessionShownCount[word.id] || 0) < 3 && word.id !== excludeWordId
+    );
     
-    for (let level = currentLevel; level <= 5; level++) {
+    if (currentLevelWords.length > 0) {
+      // Stay at current level
+      setWordsQueueForCurrentLevel(currentLevelWords);
+      setCurrentWord(currentLevelWords[0]);
+      return;
+    }
+    
+    // Only if current level is completely done, move to next level
+    let foundWord = false;
+    for (let level = currentLevel + 1; level <= 5; level++) {
       const wordsAtLevel = getWordsAtLevel(sortedWords, level).filter(
-        word => (sessionShownCount[word.id] || 0) < 3 && word.id !== excludeWordId
+        word => (sessionShownCount[word.id] || 0) < 3
       );
       
       if (wordsAtLevel.length > 0) {
-        if (level !== currentLevel) {
-          setCurrentLevel(level);
-        }
+        setCurrentLevel(level);
         setWordsQueueForCurrentLevel(wordsAtLevel);
         setCurrentWord(wordsAtLevel[0]);
         foundWord = true;
