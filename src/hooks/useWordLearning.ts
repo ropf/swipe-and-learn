@@ -38,7 +38,7 @@ export const useWordLearning = (
     }
   }, [words, currentLevel]);
 
-  const moveToNextAvailableWord = () => {
+  const moveToNextAvailableWord = (excludeWordId?: string) => {
     const sortedWords = sortWords(words);
     
     // Try to find next word in current level that hasn't been shown 3 times
@@ -46,7 +46,7 @@ export const useWordLearning = (
     
     for (let level = currentLevel; level <= 5; level++) {
       const wordsAtLevel = getWordsAtLevel(sortedWords, level).filter(
-        word => (sessionShownCount[word.id] || 0) < 3
+        word => (sessionShownCount[word.id] || 0) < 3 && word.id !== excludeWordId
       );
       
       if (wordsAtLevel.length > 0) {
@@ -113,11 +113,13 @@ export const useWordLearning = (
   const markUnknown = async () => {
     if (!currentWord) return;
     
+    const wordId = currentWord.id;
+    
     // Increment shown count
-    const newCount = (sessionShownCount[currentWord.id] || 0) + 1;
+    const newCount = (sessionShownCount[wordId] || 0) + 1;
     setSessionShownCount(prev => ({
       ...prev,
-      [currentWord.id]: newCount
+      [wordId]: newCount
     }));
     
     // Update level (-1)
@@ -125,10 +127,10 @@ export const useWordLearning = (
     const updatedLastSeen = Date.now();
     
     try {
-      await updateWordLevel(currentWord.id, updatedLevel, updatedLastSeen);
+      await updateWordLevel(wordId, updatedLevel, updatedLastSeen);
       setWords(prev => 
         prev.map(word => 
-          word.id === currentWord.id
+          word.id === wordId
             ? { ...word, level: updatedLevel, lastSeen: updatedLastSeen }
             : word
         )
@@ -139,13 +141,14 @@ export const useWordLearning = (
     
     // Remove word from current level queue
     // It will appear again when we reach its new (lower) level
-    const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
+    const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== wordId);
     setWordsQueueForCurrentLevel(remainingQueue);
     
     if (remainingQueue.length > 0) {
       setCurrentWord(remainingQueue[0]);
     } else {
-      moveToNextAvailableWord();
+      // Exclude the just-moved word from immediate re-selection
+      moveToNextAvailableWord(wordId);
     }
   };
 
