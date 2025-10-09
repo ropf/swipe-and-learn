@@ -98,16 +98,13 @@ export const useWordLearning = (
       // Error already handled in updateWordLevel
     }
     
-    // If shown 3 times, remove from queue completely
-    if (newCount >= 3) {
-      const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
-      setWordsQueueForCurrentLevel(remainingQueue);
-      
-      if (remainingQueue.length > 0) {
-        setCurrentWord(remainingQueue[0]);
-      } else {
-        moveToNextAvailableWord();
-      }
+    // Remove word from current level queue
+    // It will appear again when we reach its new (higher) level
+    const remainingQueue = wordsQueueForCurrentLevel.filter(word => word.id !== currentWord.id);
+    setWordsQueueForCurrentLevel(remainingQueue);
+    
+    if (remainingQueue.length > 0) {
+      setCurrentWord(remainingQueue[0]);
     } else {
       moveToNextAvailableWord();
     }
