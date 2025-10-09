@@ -109,8 +109,10 @@ export const useWordLearning = (
     
     // If word is moved to a different level, mark it as just moved
     const levelChanged = updatedLevel !== originalLevel;
+    const newJustMovedWords = new Set(justMovedWords);
     if (levelChanged) {
-      setJustMovedWords(prev => new Set(prev).add(wordId));
+      newJustMovedWords.add(wordId);
+      setJustMovedWords(newJustMovedWords);
     }
     
     try {
@@ -126,6 +128,8 @@ export const useWordLearning = (
       setWords(updatedWords);
       
       // Calculate remaining queue from current level with updated data
+      // USE NEW VALUES, not state values!
+      const newSessionShownCount = { ...sessionShownCount, [wordId]: newCount };
       const remainingQueue = wordsQueueForCurrentLevel.filter(word => {
         if (word.id === wordId) return false;
         
@@ -133,9 +137,9 @@ export const useWordLearning = (
         const updatedWord = updatedWords.find(w => w.id === word.id);
         if (!updatedWord || updatedWord.level !== currentLevel) return false;
         
-        // Check session count and just moved
-        if ((sessionShownCount[word.id] || 0) >= 3) return false;
-        if (justMovedWords.has(word.id)) return false;
+        // Check session count and just moved - USE NEW VALUES!
+        if ((newSessionShownCount[word.id] || 0) >= 3) return false;
+        if (newJustMovedWords.has(word.id)) return false;
         
         return true;
       });
@@ -171,8 +175,10 @@ export const useWordLearning = (
     
     // If word is moved to a different level, mark it as just moved
     const levelChanged = updatedLevel !== originalLevel;
+    const newJustMovedWords = new Set(justMovedWords);
     if (levelChanged) {
-      setJustMovedWords(prev => new Set(prev).add(wordId));
+      newJustMovedWords.add(wordId);
+      setJustMovedWords(newJustMovedWords);
     }
     
     try {
@@ -188,6 +194,8 @@ export const useWordLearning = (
       setWords(updatedWords);
       
       // Calculate remaining queue from current level with updated data
+      // USE NEW VALUES, not state values!
+      const newSessionShownCount = { ...sessionShownCount, [wordId]: newCount };
       const remainingQueue = wordsQueueForCurrentLevel.filter(word => {
         if (word.id === wordId) return false;
         
@@ -195,9 +203,9 @@ export const useWordLearning = (
         const updatedWord = updatedWords.find(w => w.id === word.id);
         if (!updatedWord || updatedWord.level !== currentLevel) return false;
         
-        // Check session count and just moved
-        if ((sessionShownCount[word.id] || 0) >= 3) return false;
-        if (justMovedWords.has(word.id)) return false;
+        // Check session count and just moved - USE NEW VALUES!
+        if ((newSessionShownCount[word.id] || 0) >= 3) return false;
+        if (newJustMovedWords.has(word.id)) return false;
         
         return true;
       });
